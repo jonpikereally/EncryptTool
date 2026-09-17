@@ -1,5 +1,5 @@
 /**
- * EncryptTool worker.
+ * EncryptYourLife worker.
  *
  * Serves the static advisor from the ASSETS binding, adds the standard
  * security-header set, and generates robots.txt / sitemap.xml from the live

@@ -92,9 +92,9 @@ for y in range(0, HEIGHT, 40):
 rect(0, 0, WIDTH, 8, ACCENT)
 rect(0, HEIGHT - 8, WIDTH, 8, ACCENT)
 
-centre("ENCRYPTTOOL", 170, 14, TEXT, tracking=1)
-centre("OFFLINE PASSWORD ENCRYPTION", 330, 6, ACCENT, tracking=1)
-centre("DICE - PAPER - PEN - NEVER A COMPUTER", 430, 4, DIM, tracking=1)
+centre("ENCRYPT YOUR LIFE", 205, 11, TEXT, tracking=1)
+centre("ENCRYPTION TOOLS AND PASSWORDS", 345, 6, ACCENT, tracking=1)
+centre("WRITTEN DOWN - NEVER STORED ON A COMPUTER", 440, 4, DIM, tracking=1)
 
 raw = bytearray()
 for y in range(HEIGHT):
