@@ -136,21 +136,13 @@
       <section class="choices" aria-labelledby="make-title">
         <h1 id="make-title">What do you want to make?</h1>
         <form id="maker-form" novalidate>
-          <div class="makers">
-            <label class="maker" for="make-tool">
-              <input type="checkbox" id="make-tool" name="make" value="tool" checked />
-              <span class="maker-body">
-                <span class="maker-name">An encryption tool</span>
-                <span class="maker-blurb">A grid, pad, square or rule that hides a password you write down.</span>
-              </span>
-            </label>
-            <label class="maker" for="make-password">
-              <input type="checkbox" id="make-password" name="make" value="password" />
-              <span class="maker-body">
-                <span class="maker-name">A password</span>
-                <span class="maker-blurb">A strong passphrase or character string, ready to write down.</span>
-              </span>
-            </label>
+          <div class="row row-make">
+            <label for="make">Make</label>
+            <select id="make" name="make" class="select">
+              <option value="tool">An encryption tool</option>
+              <option value="password">A password</option>
+              <option value="both">Both</option>
+            </select>
           </div>
 
           <div class="option-group" id="tool-options" data-for="tool">

@@ -62,48 +62,60 @@
 
   /* --------------------------------------------------------------- options */
 
+  /*
+   * Every option is a dropdown. `options` may be a function of the current
+   * values, for rows whose choices depend on another row; `when` hides a row.
+   */
+  const withUnit = (values, unit) => values.map((n) => ({ value: String(n), label: `${n} ${unit}` }));
+  const CHAR_LENGTHS = [8, 12, 16, 20, 24, 32];
+  const WORD_LENGTHS = [4, 5, 6, 7, 8];
+
   const TOOL_ROWS = [
+    {
+      id: "scope",
+      label: "Encrypt",
+      options: [
+        { value: "one", label: "One password" },
+        { value: "many", label: "Many passwords with one key" },
+      ],
+      initial: "one",
+    },
     {
       id: "complexity",
       label: "How complicated",
       options: [
-        { value: "simple", label: "Simple", hint: "seconds to use, one thing to remember" },
-        { value: "balanced", label: "Balanced", hint: "a few minutes of pen work" },
-        { value: "maximum", label: "Maximum", hint: "a ceremony, for a vault you rarely open" },
+        { value: "simple", label: "Simple - seconds to use, one thing to remember" },
+        { value: "balanced", label: "Balanced - a few minutes of pen work" },
+        { value: "maximum", label: "Maximum - a ceremony, for a vault you rarely open" },
       ],
       initial: "balanced",
     },
     {
       id: "chars",
-      label: "What the password contains",
+      label: "Password contains",
       options: [
         { value: "letters", label: "Letters" },
-        { value: "alnum", label: "Letters + digits" },
-        { value: "full", label: "Letters, digits + symbols" },
+        { value: "alnum", label: "Letters and digits" },
+        { value: "full", label: "Letters, digits and symbols" },
         { value: "words", label: "Words" },
       ],
       initial: "alnum",
     },
-    { id: "length", label: "Up to", unit: "characters", options: numbers([8, 12, 16, 20, 24, 32]), initial: "16", when: (o) => o.chars !== "words" },
-    { id: "words", label: "Up to", unit: "words", options: numbers([4, 5, 6, 7, 8]), initial: "6", when: (o) => o.chars === "words" },
     {
-      id: "random",
-      label: "Incorporate randomness",
-      options: [
-        { value: "yes", label: "Yes - make the key material for me" },
-        { value: "no", label: "No - only rules I keep in my head" },
-      ],
-      initial: "yes",
+      id: "length",
+      label: "Password length",
+      options: (o) => (o.chars === "words" ? withUnit(WORD_LENGTHS, "words") : withUnit(CHAR_LENGTHS, "characters")),
+      initial: (o) => (o.chars === "words" ? "6" : "16"),
     },
     {
-      id: "source",
-      label: "Randomness from",
+      id: "random",
+      label: "Randomness",
       options: [
-        { value: "device", label: "This device" },
+        { value: "device", label: "Made for me on this device" },
         { value: "dice", label: "I'll roll dice - give me blank sheets" },
+        { value: "none", label: "None - only rules I keep in my head" },
       ],
       initial: "device",
-      when: (o) => o.random === "yes",
     },
   ];
 
@@ -112,20 +124,24 @@
       id: "ptype",
       label: "Kind",
       options: [
-        { value: "words", label: "Passphrase (words)" },
+        { value: "words", label: "Passphrase - words" },
         { value: "chars", label: "Characters" },
       ],
       initial: "words",
     },
-    { id: "pwords", label: "Length", unit: "words", options: numbers([4, 5, 6, 7, 8]), initial: "6", when: (o) => o.ptype === "words" },
-    { id: "plength", label: "Length", unit: "characters", options: numbers([8, 12, 16, 20, 24, 32]), initial: "16", when: (o) => o.ptype === "chars" },
+    {
+      id: "plength",
+      label: "Length",
+      options: (o) => (o.ptype === "words" ? withUnit(WORD_LENGTHS, "words") : withUnit(CHAR_LENGTHS, "characters")),
+      initial: (o) => (o.ptype === "words" ? "6" : "16"),
+    },
     {
       id: "pchars",
       label: "Characters",
       options: [
         { value: "letters", label: "Letters" },
-        { value: "alnum", label: "Letters + digits" },
-        { value: "full", label: "Letters, digits + symbols" },
+        { value: "alnum", label: "Letters and digits" },
+        { value: "full", label: "Letters, digits and symbols" },
       ],
       initial: "full",
       when: (o) => o.ptype === "chars",
@@ -136,67 +152,78 @@
       options: [
         { value: "-", label: "Hyphen" },
         { value: " ", label: "Space" },
-        { value: "", label: "Nothing, capitalise each word" },
+        { value: "", label: "Nothing - capitalise each word" },
       ],
       initial: "-",
       when: (o) => o.ptype === "words",
     },
     {
       id: "pstrict",
-      label: "Satisfy picky sites",
+      label: "Picky sites",
       options: [
-        { value: "no", label: "No" },
-        { value: "yes", label: "Yes - guarantee a capital, a digit and a symbol" },
+        { value: "no", label: "Don't mind" },
+        { value: "yes", label: "Guarantee a capital, a digit and a symbol" },
       ],
       initial: "no",
     },
   ];
 
+  const resolve = (value, o) => (typeof value === "function" ? value(o) : value);
+
+  function optionsHtml(row, o, selected) {
+    return resolve(row.options, o)
+      .map((option) => `<option value="${esc(option.value)}"${option.value === selected ? " selected" : ""}>${esc(option.label)}</option>`)
+      .join("");
+  }
+
   function renderRows(container, rows) {
+    const o = {};
+    for (const row of rows) o[row.id] = resolve(row.initial, o);
     container.innerHTML = rows
-      .map((row) => {
-        const pills = row.options
-          .map((option) => {
-            const id = `${row.id}-${option.value === "" ? "none" : option.value}`;
-            return `
-              <input class="pill-input" type="radio" name="${esc(row.id)}" id="${esc(id)}" value="${esc(option.value)}"${option.value === row.initial ? " checked" : ""} />
-              <label class="pill" for="${esc(id)}"${option.hint ? ` title="${esc(option.hint)}"` : ""}>${esc(option.label)}</label>`;
-          })
-          .join("");
-        const unit = row.unit ? `<span class="row-unit">${esc(row.unit)}</span>` : "";
-        return `
+      .map(
+        (row) => `
           <div class="row" data-row="${esc(row.id)}">
-            <span class="row-label">${esc(row.label)}</span>
-            <div class="pills">${pills}</div>${unit}
-          </div>`;
-      })
+            <label for="opt-${esc(row.id)}">${esc(row.label)}</label>
+            <select class="select" id="opt-${esc(row.id)}" name="${esc(row.id)}">${optionsHtml(row, o, o[row.id])}</select>
+          </div>`,
+      )
       .join("");
   }
 
   function collect(rows) {
-    const form = $("#maker-form");
     const values = {};
     for (const row of rows) {
-      const checked = form.querySelector(`input[name="${row.id}"]:checked`);
-      if (checked) values[row.id] = checked.value;
+      const select = document.querySelector(`select[name="${row.id}"]`);
+      if (select) values[row.id] = select.value;
     }
     return values;
   }
 
-  function syncRows(rows, values) {
+  /** Hide rows whose `when` fails and rebuild the option lists that depend on other rows. */
+  function syncRows(rows) {
+    const o = collect(rows);
     for (const row of rows) {
       const wrapper = document.querySelector(`.row[data-row="${row.id}"]`);
-      if (wrapper) wrapper.hidden = row.when ? !row.when(values) : false;
+      const select = wrapper && wrapper.querySelector("select");
+      if (!wrapper || !select) continue;
+      wrapper.hidden = row.when ? !row.when(o) : false;
+      if (typeof row.options !== "function") continue;
+      const wanted = row.options(o).map((option) => option.value).join("|");
+      const current = Array.from(select.options).map((option) => option.value).join("|");
+      if (wanted === current) continue;
+      /* The list itself changed (words vs characters), so a carried-over number would mean something else. */
+      const keep = resolve(row.initial, o);
+      select.innerHTML = optionsHtml(row, o, keep);
+      o[row.id] = keep;
     }
   }
 
   function syncMakers() {
-    const tool = $("#make-tool").checked;
-    const password = $("#make-password").checked;
-    $("#tool-options").hidden = !tool;
-    $("#password-options").hidden = !password;
-    syncRows(TOOL_ROWS, collect(TOOL_ROWS));
-    syncRows(PASSWORD_ROWS, collect(PASSWORD_ROWS));
+    const make = $("#make").value;
+    $("#tool-options").hidden = make === "password";
+    $("#password-options").hidden = make === "tool";
+    syncRows(TOOL_ROWS);
+    syncRows(PASSWORD_ROWS);
   }
 
   /* ------------------------------------------------------------- passwords */
@@ -221,7 +248,7 @@
       return { value, bits, detail: `${n} characters from a set of ${set.length}` };
     }
 
-    const n = Number(o.pwords);
+    const n = Number(o.plength);
     let words = Array.from({ length: n }, pickWord);
     let bits = n * WORD_BITS;
     let detail = `${n} words from the EFF list of ${window.WORDLIST.length.toLocaleString()}`;
@@ -240,6 +267,8 @@
   /* --------------------------------------------------- encryption tools */
 
   const NEEDS_RANDOM = new Set(["otp-digits", "two-share-split", "shamir-2of3", "grid-lookup", "solitaire"]);
+  /* Schemes whose key must never be used twice - out when one key covers many passwords. */
+  const ONE_TIME = new Set(["otp-digits", "two-share-split", "shamir-2of3", "split-by-meaning", "solitaire"]);
   const LETTERS_ONLY = new Set(["playfair"]);
   const COMPLEXITY = {
     simple: { retrieval: "often", effort: "seconds", memory: "short", threat: "casual" },
@@ -250,7 +279,7 @@
 
   function rankTools(o) {
     const answers = {
-      secret: o.chars === "words" ? "master" : "few",
+      secret: o.scope === "many" ? "few" : o.chars === "words" ? "master" : "few",
       ...COMPLEXITY[o.complexity],
       separate: o.random === "yes" ? "yes" : "no",
       heirs: "no",
@@ -260,6 +289,7 @@
       .recommend(answers)
       .ranked.filter((entry) => entry.method.stage === "encode" || entry.method.stage === "split")
       .filter((entry) => o.random === "yes" || !NEEDS_RANDOM.has(entry.method.id))
+      .filter((entry) => o.scope !== "many" || !ONE_TIME.has(entry.method.id))
       .filter((entry) => o.chars === "letters" || o.chars === "words" || !LETTERS_ONLY.has(entry.method.id));
     if (o.complexity === "maximum") {
       /* "Maximum" means maximum strength, so a proven method never sits below an obfuscation one. */
@@ -269,7 +299,7 @@
   }
 
   /** How many characters the key material has to cover. */
-  const coverage = (o) => (o.chars === "words" ? Number(o.words) * 8 : Number(o.length));
+  const coverage = (o) => (o.chars === "words" ? Number(o.length) * 8 : Number(o.length));
 
   const digitsBlock = (digits) => {
     const groups = digits.match(/.{1,5}/g) || [];
@@ -379,6 +409,7 @@
         return {
           title: "Your keyword - memorise it, never write it",
           html: `<p class="keyword">${esc(ws.join(" "))}</p><p class="material-note">Used as <span class="mono">${esc(keyword)}</span>, ${keyword.length} letters, about ${keyBits(keyword, 3)} bits. Three real words are far easier to keep in your head than random letters, and just as good here.</p><p>${sheet("tabula-recta")}</p>`,
+          note: o.scope === "many" ? "One keyword over many passwords is the classic way this cipher gets broken. Fine for the accounts that do not matter; not for the ones that do." : "",
         };
       }
       case "playfair": {
@@ -491,6 +522,7 @@
       .join("");
 
     const notes = [];
+    if (o.scope === "many") notes.push("One key across many passwords: anyone who learns one of the passwords can start working on the key, so the one-time methods are left out. The card and the pepper are built for exactly this; the classical ciphers are for the accounts that do not matter much.");
     if (o.random === "no") notes.push("With no random key material, every one of these rests on a rule or keyword you keep in your head - and on your memory holding. Write the rule once, seal it, and lodge it somewhere separate.");
     if (o.random === "yes" && o.source === "device") notes.push("Generated on this device and shown once. Write it down or print it now; reload the page and it is gone for good.");
     if (o.complexity === "maximum") notes.push("Maximum puts the proven methods first regardless of convenience. Each one needs its key kept in a different building from the sheet it protects.");
@@ -539,18 +571,16 @@
   }
 
   function generate() {
-    const tool = $("#make-tool").checked;
-    const password = $("#make-password").checked;
-    const note = $("#form-note");
-    if (!tool && !password) {
-      note.textContent = "Pick at least one thing to make.";
-      renderPlaceholder();
-      return;
-    }
-    note.textContent = "";
+    const make = $("#make").value;
     const parts = [];
-    if (tool) parts.push(renderTools(collect(TOOL_ROWS)));
-    if (password) parts.push(renderPasswords(collect(PASSWORD_ROWS)));
+    if (make !== "password") {
+      const o = collect(TOOL_ROWS);
+      /* The engine and the material renderer speak in random yes/no plus a source. */
+      o.source = o.random;
+      o.random = o.random === "none" ? "no" : "yes";
+      parts.push(renderTools(o));
+    }
+    if (make !== "tool") parts.push(renderPasswords(collect(PASSWORD_ROWS)));
     $("#result-body").innerHTML = `
       <div class="result-top">
         <p class="legend">
@@ -618,6 +648,7 @@
 
   function wireEvents() {
     $("#maker-form").addEventListener("change", syncMakers);
+    $("#make").addEventListener("change", renderPlaceholder);
     $("#maker-form").addEventListener("submit", (event) => {
       event.preventDefault();
       generate();
