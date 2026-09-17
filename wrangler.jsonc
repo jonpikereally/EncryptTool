@@ -1,0 +1,45 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "encrypttool",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    // Every response goes through the Worker so the security headers are
+    // applied to static assets too, not just to the generated routes.
+    "run_worker_first": true
+  },
+  // Production custom domain. Replace with the real hostname before the first
+  // `npm run deploy`, then add the domain to this Cloudflare account.
+  // "routes": [{ "pattern": "encrypttool.example.com", "custom_domain": true }],
+  "vars": {
+    // Leave empty to fall back to the request origin. Set it once the
+    // production hostname is live so canonical/OG/sitemap URLs are absolute.
+    "SITE_URL": ""
+  },
+  "env": {
+    "staging": {
+      // No explicit `name`: Wrangler derives `encrypttool-staging` from the
+      // environment, so the worker name is never hardcoded with a suffix.
+      "vars": {
+        "SITE_URL": ""
+      },
+      "observability": {
+        "enabled": true
+      },
+      "assets": {
+        "directory": "./public",
+        "binding": "ASSETS",
+        "html_handling": "auto-trailing-slash",
+        "not_found_handling": "404-page",
+        "run_worker_first": true
+      }
+    }
+  }
+}

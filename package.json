@@ -1,0 +1,18 @@
+{
+  "name": "encrypttool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline password encryption advisor - suggests paper-and-dice ways to protect important passwords without a computer.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-info.mjs && python3 scripts/og-image.py",
+    "build:info": "node scripts/build-info.mjs",
+    "check": "node scripts/check.mjs",
+    "dev": "npm run build:info && wrangler dev",
+    "deploy:staging": "npm run build && wrangler deploy --env staging",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.33.0"
+  }
+}

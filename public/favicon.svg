@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="EncryptTool">
+  <rect width="64" height="64" rx="12" fill="#0b0f14"/>
+  <g fill="none" stroke="#6fd3c7" stroke-width="3.2" stroke-linecap="round">
+    <path d="M22 28v-6a10 10 0 0 1 20 0v6"/>
+    <rect x="16" y="28" width="32" height="24" rx="5" fill="#6fd3c7" stroke="none"/>
+  </g>
+  <g fill="#0b0f14" font-family="monospace" font-size="11" font-weight="700" text-anchor="middle">
+    <text x="24" y="44">0</text>
+    <text x="40" y="44">1</text>
+  </g>
+</svg>

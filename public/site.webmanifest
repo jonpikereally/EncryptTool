@@ -1,0 +1,14 @@
+{
+  "name": "EncryptTool - offline password protection",
+  "short_name": "EncryptTool",
+  "description": "Ranked, honest ways to encrypt and protect important passwords on paper, with nothing typed into a computer.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/og.png", "sizes": "1200x630", "type": "image/png", "purpose": "any" }
+  ]
+}
