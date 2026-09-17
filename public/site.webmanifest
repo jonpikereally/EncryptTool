@@ -1,7 +1,7 @@
 {
-  "name": "EncryptTool - offline password protection",
-  "short_name": "EncryptTool",
-  "description": "Ranked, honest ways to encrypt and protect important passwords on paper, with nothing typed into a computer.",
+  "name": "EncryptYourLife - offline encryption tools and passwords",
+  "short_name": "EncryptYourLife",
+  "description": "Make an encryption tool or a password to write down and keep off every computer. Five results, honest strength labels, printable worksheets.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

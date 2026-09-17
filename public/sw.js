@@ -18,6 +18,7 @@ const PRECACHE = [
   "/printables.js",
   "/app.js",
   "/build-info.js",
+  "/wordlist.js",
   "/favicon.svg",
   "/site.webmanifest",
 ];

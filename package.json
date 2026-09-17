@@ -1,8 +1,8 @@
 {
-  "name": "encrypttool",
+  "name": "encryptyourlife",
   "version": "1.0.0",
   "private": true,
-  "description": "Offline password encryption advisor - suggests paper-and-dice ways to protect important passwords without a computer.",
+  "description": "EncryptYourLife - make offline encryption tools and passwords you write down, never store on a computer.",
   "type": "module",
   "scripts": {
     "build": "node scripts/build-info.mjs && python3 scripts/og-image.py",
