@@ -3,22 +3,22 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EncryptTool - Offline ways to protect your most important passwords</title>
+    <title>EncryptTool - Protect a password on paper</title>
     <meta
       name="description"
-      content="Answer eight questions and get a ranked, honest plan for protecting your most important passwords on paper - dice, one-time pads, splits and ciphers you can work by hand. Nothing is typed in, stored or sent anywhere."
+      content="Make six choices and get the best paper-and-pen methods for protecting a password, ranked and sized to what you need. Nothing is typed in, stored or sent anywhere."
     />
     <link rel="canonical" href="https://encrypttool.invalid/" />
     <meta name="robots" content="index, follow" />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0d1117" />
+    <meta name="theme-color" content="#0b0f14" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="EncryptTool" />
-    <meta property="og:title" content="EncryptTool - Offline ways to protect your most important passwords" />
+    <meta property="og:title" content="EncryptTool - Protect a password on paper" />
     <meta
       property="og:description"
-      content="A ranked, honest plan for protecting passwords on paper: dice, one-time pads, splits and hand-worked ciphers. Nothing is typed in, stored or sent anywhere."
+      content="Six choices, then the best paper-and-pen methods for your password: dice, one-time pads, splits and hand-worked ciphers. Nothing is typed in, stored or sent anywhere."
     />
     <meta property="og:url" content="https://encrypttool.invalid/" />
     <meta property="og:image" content="https://encrypttool.invalid/og.png" />
@@ -26,10 +26,10 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="EncryptTool - offline password encryption" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="EncryptTool - Offline ways to protect your most important passwords" />
+    <meta name="twitter:title" content="EncryptTool - Protect a password on paper" />
     <meta
       name="twitter:description"
-      content="A ranked, honest plan for protecting passwords on paper. Nothing is typed in, stored or sent anywhere."
+      content="Six choices, then the best paper-and-pen methods for your password. Nothing is typed in, stored or sent anywhere."
     />
     <meta name="twitter:image" content="https://encrypttool.invalid/og.png" />
 
@@ -48,7 +48,7 @@
             "applicationCategory": "SecurityApplication",
             "operatingSystem": "Any",
             "browserRequirements": "Works offline once loaded",
-            "description": "An advisor that suggests offline, paper-based ways to encrypt and protect important passwords, ranked against your own threat model.",
+            "description": "An advisor that suggests offline, paper-based ways to protect a password, ranked against six choices you make.",
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "GBP" },
             "isAccessibleForFree": true
           },
@@ -65,10 +65,10 @@
               },
               {
                 "@type": "Question",
-                "name": "Why not just let the website generate a one-time pad for me?",
+                "name": "Why not just let the website generate a password for me?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Because the whole point of an offline key is that it was never on a computer. A pad generated in a browser has been in memory, possibly in a swap file and possibly in a backup. Roll it with dice instead - the site prints the worksheets you need."
+                  "text": "Because the whole point of an offline secret is that it was never on a computer. A password generated in a browser has been in memory, possibly in a swap file and possibly in a backup. Roll it with dice or deal it from cards instead - the site tells you how many and prints the tables you need."
                 }
               },
               {
@@ -86,151 +86,27 @@
     </script>
   </head>
   <body>
-    <a class="skip-link" href="#advisor">Skip to the questions</a>
+    <a class="skip-link" href="#result">Skip to the result</a>
 
-    <header class="masthead">
-      <div class="wrap">
-        <p class="eyebrow">Offline password protection</p>
-        <h1>Encryption that never touches a computer</h1>
-        <p class="lede">
-          The strongest key you own is the one that was never typed, never synced and never backed up.
-          Answer eight questions and get a ranked, honest plan for protecting your most important
-          passwords with paper, dice and a pen.
-        </p>
-        <ul class="promises">
-          <li><strong>No field on this site accepts a secret.</strong> There is nowhere to type one.</li>
-          <li><strong>Nothing is generated for you.</strong> Your randomness comes from dice you roll.</li>
-          <li><strong>No cookies, no analytics, no network calls.</strong> Load it once, then pull the plug.</li>
-        </ul>
-      </div>
+    <header class="bar">
+      <p class="brand"><span class="mark" aria-hidden="true">{ }</span> EncryptTool</p>
+      <p class="strap">Protect a password on paper. Nothing you choose here is a secret, and nothing leaves this page.</p>
+      <p class="build" id="build-stamp"></p>
     </header>
 
-    <main class="wrap">
-      <section class="panel" id="how" aria-labelledby="how-title">
-        <h2 id="how-title">How this works</h2>
-        <div class="how-grid">
-          <div>
-            <h3>1. Tell it your situation</h3>
-            <p>What you are protecting, who might find it, how often you need it back, and what you have to hand.</p>
-          </div>
-          <div>
-            <h3>2. Get a five-stage plan</h3>
-            <p>Generate, encode, split, store, verify - with the method that fits you at each stage, and why.</p>
-          </div>
-          <div>
-            <h3>3. Print the worksheets</h3>
-            <p>Lookup tables and blank grids you fill in by hand. Then work entirely on paper, away from any screen.</p>
-          </div>
-        </div>
+    <main class="screen">
+      <section class="choices" aria-labelledby="choices-title">
+        <h1 id="choices-title">Six choices</h1>
+        <form id="choices-form" novalidate></form>
       </section>
 
-      <section class="panel" id="advisor" aria-labelledby="advisor-title">
-        <h2 id="advisor-title">Eight questions</h2>
-        <p class="panel-intro">
-          Answer honestly rather than aspirationally. A scheme you will not keep up with protects nothing.
-        </p>
-        <form id="question-form" novalidate>
-          <div id="questions" class="question-grid"></div>
-          <div class="actions">
-            <button type="submit" class="button primary">Build my plan</button>
-            <button type="button" class="button" id="reset-button">Start again</button>
-          </div>
-          <p class="form-note" id="form-note" role="status"></p>
-        </form>
-      </section>
-
-      <section class="panel results" id="results" aria-labelledby="results-title" hidden>
-        <h2 id="results-title">Your plan</h2>
-        <div id="warnings"></div>
-        <ol id="plan" class="plan"></ol>
-        <div class="actions">
-          <button type="button" class="button" id="print-plan">Print this plan</button>
-        </div>
-      </section>
-
-      <section class="panel" id="catalogue" aria-labelledby="catalogue-title">
-        <h2 id="catalogue-title">Every method</h2>
-        <p class="panel-intro">
-          Twenty-three ways to protect a written secret, each labelled with what it actually defeats.
-          Nothing here is rated higher than it deserves.
-        </p>
-        <div class="filters" role="group" aria-label="Filter methods">
-          <label class="field">
-            <span>Stage</span>
-            <select id="filter-stage">
-              <option value="all">All stages</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Strength</span>
-            <select id="filter-security">
-              <option value="all">All strengths</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Sort</span>
-            <select id="sort-order">
-              <option value="stage">By stage</option>
-              <option value="fit">By fit to my answers</option>
-              <option value="security">By strength</option>
-            </select>
-          </label>
-        </div>
-        <div id="method-list" class="method-list"></div>
-      </section>
-
-      <section class="panel" id="printables" aria-labelledby="printables-title">
-        <h2 id="printables-title">Worksheets to print</h2>
-        <p class="panel-intro">
-          These contain no secrets - they are the lookup tables and blank grids the methods refer to.
-          Print them, then fill them in by hand, away from the computer.
-        </p>
-        <div class="printable-picker" role="group" aria-label="Choose a worksheet"></div>
-        <div id="printable-output" class="printable-output" aria-live="polite"></div>
-      </section>
-
-      <section class="panel" id="honesty" aria-labelledby="honesty-title">
-        <h2 id="honesty-title">What this tool will not pretend</h2>
-        <ul class="honesty">
-          <li>
-            <strong>Classical ciphers are not strong encryption.</strong> Vigenere, Playfair and
-            transposition have been breakable by skilled people since the nineteenth century. They are
-            listed because stopping a burglar is a real and useful goal - not because they would survive
-            an expert.
-          </li>
-          <li>
-            <strong>A one-time pad is only unbreakable if you follow the rules.</strong> Truly random,
-            never reused, as long as the secret, and stored apart from the ciphertext. Break any one of
-            those and it degrades to something much weaker.
-          </li>
-          <li>
-            <strong>Paper fails in ordinary ways.</strong> Fire, damp, faded ink, house moves and helpful
-            relatives destroy more offline secrets than cryptanalysis ever has. That is why storing and
-            verifying are stages here, not afterthoughts.
-          </li>
-          <li>
-            <strong>Offline is not automatically safer.</strong> A password manager with a strong master
-            password beats a badly kept sheet of paper. This is for the small number of secrets that
-            genuinely should never be on a computer at all: the master password itself, seed phrases,
-            recovery codes, and what your family will need.
-          </li>
-          <li>
-            <strong>Nothing here is legal or financial advice</strong>, and no method survives someone
-            standing over you demanding a password.
-          </li>
-        </ul>
+      <section class="result" id="result" aria-labelledby="result-title">
+        <h2 id="result-title" class="visually-hidden">Your methods</h2>
+        <div id="result-body"></div>
       </section>
     </main>
 
-    <footer class="site-footer">
-      <div class="wrap">
-        <p>
-          EncryptTool - an advisor, not a vault. Everything it suggests happens on your table, not on
-          this server.
-        </p>
-        <p class="build" id="build-stamp"></p>
-      </div>
-    </footer>
+    <div id="print-sheet" class="print-sheet" hidden></div>
 
     <script src="/build-info.js"></script>
     <script src="/methods.js"></script>
