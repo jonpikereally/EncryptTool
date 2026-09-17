@@ -1,6 +1,9 @@
 /*
  * UI wiring. Deliberately dependency-free and deliberately inert: nothing here
  * reads a secret, generates one, stores anything or talks to the network.
+ *
+ * The page is six choices on the left and the result on the right. The result
+ * appears as soon as every choice has an answer, and changes live after that.
  */
 (function app() {
   "use strict";
@@ -10,374 +13,367 @@
   const esc = (value) =>
     String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 
-  const list = (items, className) =>
-    `<ul class="${className || ""}">${items.map((item) => `<li>${esc(item)}</li>`).join("")}</ul>`;
+  const list = (items, tag, className) =>
+    `<${tag} class="${className || ""}">${items.map((item) => `<li>${esc(item)}</li>`).join("")}</${tag}>`;
 
-  let answers = {};
-  let lastResult = null;
+  const numbers = (values) => values.map((n) => ({ value: String(n), label: String(n) }));
 
-  /* ------------------------------------------------------------- questions */
+  /* ---------------------------------------------------------------- choices */
 
-  function renderQuestions() {
-    const container = $("#questions");
-    container.innerHTML = window.QUESTIONS.map((question, index) => {
-      const type = question.multi ? "checkbox" : "radio";
-      const options = question.options
-        .map((option, optionIndex) => {
-          const id = `${question.id}-${option.value}`;
-          return `
-            <div class="option">
-              <input type="${type}" name="${esc(question.id)}" id="${esc(id)}" value="${esc(option.value)}"
-                ${!question.multi && optionIndex === -1 ? "checked" : ""} />
-              <label for="${esc(id)}">
-                <span class="option-label">${esc(option.label)}</span>
-                <span class="option-detail">${esc(option.detail)}</span>
-              </label>
-            </div>`;
+  /*
+   * A choice is one numbered question. Most have one row of pills; the
+   * password choice has three, with the length row swapping to a word-count
+   * row when the password is a passphrase.
+   */
+  const CHOICES = [
+    {
+      prompt: "Where should the randomness come from?",
+      rows: [
+        {
+          id: "random",
+          options: [
+            { value: "dice", label: "Dice" },
+            { value: "cards", label: "Playing cards" },
+            { value: "none", label: "None, I already have the password" },
+          ],
+        },
+      ],
+    },
+    {
+      prompt: "How many methods do you want to see?",
+      rows: [{ id: "count", options: numbers([2, 3, 4, 5]) }],
+    },
+    {
+      prompt: "How complex should the encryption be?",
+      rows: [
+        {
+          id: "complexity",
+          options: [
+            { value: "simple", label: "Simple", hint: "minutes of pen work, little to remember" },
+            { value: "balanced", label: "Balanced", hint: "some arithmetic, one thing to remember" },
+            { value: "maximum", label: "Maximum", hint: "a ceremony, for a vault you rarely open" },
+          ],
+        },
+      ],
+    },
+    {
+      prompt: "How long, and which characters?",
+      rows: [
+        {
+          id: "type",
+          options: [
+            { value: "letters", label: "Letters" },
+            { value: "alnum", label: "Letters + digits" },
+            { value: "full", label: "Letters, digits + symbols" },
+            { value: "words", label: "Words" },
+          ],
+        },
+        { id: "length", unit: "characters", options: numbers([8, 12, 16, 20, 24, 32]), when: (c) => c.type !== "words" },
+        { id: "words", unit: "words", options: numbers([4, 5, 6, 7, 8]), when: (c) => c.type === "words" },
+      ],
+    },
+    {
+      prompt: "Who might find it?",
+      rows: [
+        {
+          id: "threat",
+          options: [
+            { value: "none", label: "Nobody, just fire and forgetting" },
+            { value: "casual", label: "Household or a burglar" },
+            { value: "targeted", label: "Someone targeting me" },
+          ],
+        },
+      ],
+    },
+    {
+      prompt: "Can a second sheet live in another building?",
+      rows: [
+        {
+          id: "separate",
+          options: [
+            { value: "yes", label: "Yes" },
+            { value: "no", label: "No, one place only" },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const ROWS = CHOICES.flatMap((choice) => choice.rows);
+
+  function renderChoices() {
+    $("#choices-form").innerHTML = CHOICES.map((choice, index) => {
+      const rows = choice.rows
+        .map((row) => {
+          const pills = row.options
+            .map((option) => {
+              const id = `${row.id}-${option.value}`;
+              return `
+                <input class="pill-input" type="radio" name="${esc(row.id)}" id="${esc(id)}" value="${esc(option.value)}" />
+                <label class="pill" for="${esc(id)}"${option.hint ? ` title="${esc(option.hint)}"` : ""}>${esc(option.label)}</label>`;
+            })
+            .join("");
+          const unit = row.unit ? `<span class="row-unit">${esc(row.unit)}</span>` : "";
+          return `<div class="row" data-row="${esc(row.id)}"><div class="pills">${pills}</div>${unit}</div>`;
         })
         .join("");
 
       return `
-        <fieldset class="question" data-question="${esc(question.id)}">
-          <legend><span class="question-number">${index + 1}</span> ${esc(question.prompt)}</legend>
-          <p class="question-help">${esc(question.help)}</p>
-          <div class="options">${options}</div>
+        <fieldset class="choice">
+          <legend><span class="choice-num">${index + 1}</span>${esc(choice.prompt)}</legend>
+          ${rows}
         </fieldset>`;
     }).join("");
   }
 
-  function collectAnswers() {
-    const form = $("#question-form");
-    const collected = {};
-    for (const question of window.QUESTIONS) {
-      const checked = Array.from(form.querySelectorAll(`input[name="${question.id}"]:checked`)).map((input) => input.value);
-      if (checked.length === 0) continue;
-      collected[question.id] = question.multi ? checked : checked[0];
+  function collect() {
+    const form = $("#choices-form");
+    const choices = {};
+    for (const row of ROWS) {
+      const checked = form.querySelector(`input[name="${row.id}"]:checked`);
+      if (checked) choices[row.id] = checked.value;
     }
-    return collected;
+    return choices;
   }
 
-  function missingQuestions(collected) {
-    return window.QUESTIONS.filter((question) => !collected[question.id]);
-  }
+  const rowIsActive = (row, choices) => !row.when || row.when(choices);
 
-  /* --------------------------------------------------------------- ratings */
+  /* ----------------------------------------------------------- translation */
 
-  const RATING_LABELS = {
-    effort: { name: "Effort to set up", low: "easy", high: "demanding" },
-    speed: { name: "Speed to retrieve", low: "slow", high: "instant" },
-    errorRisk: { name: "Risk of a costly slip", low: "low", high: "high" },
-    memoryLoad: { name: "Held in your head", low: "nothing", high: "a lot" },
+  /*
+   * The scoring engine in recommend.js speaks the older eight-question
+   * vocabulary. Six choices map onto it like this.
+   */
+  const COMPLEXITY = {
+    simple: { retrieval: "often", effort: "seconds", memory: "short" },
+    balanced: { retrieval: "sometimes", effort: "minutes", memory: "short" },
+    maximum: { retrieval: "rarely", effort: "hour", memory: "strong" },
   };
+  const THREAT = { none: "none", casual: "burglar", targeted: "targeted" };
+  const MATERIALS = { dice: ["dice", "printer"], cards: ["cards", "printer"], none: ["printer"] };
 
-  function ratingBar(key, value) {
-    const meta = RATING_LABELS[key];
-    const pips = Array.from({ length: 5 }, (_, index) => `<span class="pip${index < value ? " on" : ""}"></span>`).join("");
-    const caption = value <= 2 ? meta.low : value >= 4 ? meta.high : "moderate";
+  function answersFrom(c) {
+    return {
+      secret: c.type === "words" ? "master" : "few",
+      threat: THREAT[c.threat],
+      ...COMPLEXITY[c.complexity],
+      separate: c.separate,
+      heirs: "no",
+      materials: MATERIALS[c.random],
+    };
+  }
+
+  /* --------------------------------------------------------------- generate */
+
+  const BITS = { word: Math.log2(7776), gridChar: Math.log2(36), gridLetter: Math.log2(26), card: Math.log2(52) };
+
+  function grade(bits) {
+    if (bits >= 80) return "very strong";
+    if (bits >= 60) return "strong";
+    if (bits >= 45) return "adequate";
+    return "weak";
+  }
+
+  /** The generate step, sized to the password the user asked for. */
+  function generatePlan(c) {
+    if (c.random === "none") return null;
+    const words = c.type === "words";
+    const n = Number(words ? c.words : c.length);
+    let id;
+    let recipe;
+    let bits;
+    let caveat = "";
+
+    if (c.random === "dice" && words) {
+      id = "dice-passphrase";
+      recipe = `Roll five dice ${n} times and take one word per roll from the printed word list.`;
+      bits = n * BITS.word;
+    } else if (c.random === "dice") {
+      id = "dice-charset";
+      if (c.type === "letters") {
+        recipe = `Roll two dice ${n} times and read each pair off the character grid, rolling again whenever you land on a digit.`;
+        bits = n * BITS.gridLetter;
+      } else {
+        recipe = `Roll two dice ${n} times and read each pair off the character grid.`;
+        bits = n * BITS.gridChar;
+      }
+      if (c.type === "full") {
+        caveat = "The grid has no symbols. Add one or two by a fixed rule of your own, and do not count them towards strength.";
+      }
+    } else if (words) {
+      id = "card-shuffle";
+      recipe = `A deck deals letters, not words. Deal ${n * 5} cards from the card table and write them in ${n} blocks of five, or pick dice for a real word list.`;
+      bits = n * 5 * BITS.card;
+    } else {
+      id = "card-shuffle";
+      recipe = `Riffle shuffle at least seven times, then deal ${n} cards and take one letter each from the card table.`;
+      bits = n * BITS.card;
+      if (c.type !== "letters") {
+        caveat = "The card table gives letters only. Add digits and symbols by a fixed rule of your own, and do not count them towards strength.";
+      }
+    }
+
+    return { method: window.METHODS.find((method) => method.id === id), recipe, bits: Math.round(bits), caveat };
+  }
+
+  /* ---------------------------------------------------------------- render */
+
+  function howTo(method) {
+    const sheet = method.printable ? window.PRINTABLES.find((item) => item.id === method.printable) : null;
+    const decode = method.steps.decode.filter((step) => !/nothing to decode/i.test(step));
     return `
-      <div class="rating">
-        <span class="rating-name">${esc(meta.name)}</span>
-        <span class="pips" role="img" aria-label="${esc(`${meta.name}: ${value} out of 5, ${caption}`)}">${pips}</span>
-        <span class="rating-caption">${esc(caption)}</span>
+      <details class="howto">
+        <summary>How to do it</summary>
+        <div class="howto-body">
+          <p class="tagline">${esc(method.tagline)}</p>
+          <div class="two-col">
+            <div><h4>What it stops</h4>${list(method.protects, "ul")}</div>
+            <div><h4>What it does not stop</h4>${list(method.failsAgainst, "ul")}</div>
+          </div>
+          <h4>You will need</h4>
+          ${list(method.materials, "ul")}
+          <h4>Doing it</h4>
+          ${list(method.steps.encode, "ol", "steps")}
+          ${decode.length ? `<h4>Reading it back</h4>${list(decode, "ol", "steps")}` : ""}
+          <h4>${esc(method.example.title)}</h4>
+          <pre>${esc(method.example.lines.join("\n"))}</pre>
+          <h4>Where people go wrong</h4>
+          ${list(method.pitfalls, "ul")}
+          ${sheet ? `<p><button type="button" class="link-button" data-sheet="${esc(sheet.id)}">Print the ${esc(sheet.name.toLowerCase())}</button></p>` : ""}
+        </div>
+      </details>`;
+  }
+
+  function badge(method) {
+    const security = window.SECURITY_CLASSES[method.security];
+    return `<span class="badge badge-${esc(method.security)}" title="${esc(security.label)}">${esc(security.short)}</span>`;
+  }
+
+  function renderPlaceholder(answered, total) {
+    $("#result-body").innerHTML = `
+      <div class="placeholder">
+        <p class="placeholder-title">Your methods appear here.</p>
+        <p class="placeholder-count">${answered} of ${total} chosen</p>
       </div>`;
   }
 
-  /* ---------------------------------------------------------- method cards */
+  function renderResult(c) {
+    const answers = answersFrom(c);
+    const result = window.recommend(answers);
+    const hits = result.ranked
+      .filter((entry) => entry.method.stage === "encode" || entry.method.stage === "split")
+      .slice(0, Number(c.count));
+    const gen = generatePlan(c);
 
-  function methodCard(method, scored, options) {
-    const opts = options || {};
-    const security = window.SECURITY_CLASSES[method.security];
-    const stage = window.STAGES.find((item) => item.id === method.stage);
-    const printable = method.printable ? window.PRINTABLES.find((sheet) => sheet.id === method.printable) : null;
-    const pairs = (method.pairsWith || [])
-      .map((id) => window.METHODS.find((item) => item.id === id))
-      .filter(Boolean);
+    const notes = [];
+    if (c.separate === "no") {
+      notes.push("With one location only, the provably unbreakable methods are off the table: they all keep a key in another building.");
+    }
+    if (c.threat === "targeted" && hits.some((entry) => entry.method.security === "obfuscation")) {
+      notes.push("Against a skilled adversary only the Proven methods hold. The rest are ranked for completeness, not endorsement.");
+    }
 
-    const fit =
-      scored && typeof scored.score === "number"
-        ? `<p class="fit"><span class="fit-score">${scored.score}</span><span class="fit-label">fit for your answers</span></p>`
-        : "";
-
-    const reasons =
-      scored && (scored.pros.length || scored.cons.length)
-        ? `
-        <div class="reasons">
-          ${scored.pros.length ? `<div class="reason-block good"><h5>Why it suits you</h5>${list(scored.pros)}</div>` : ""}
-          ${scored.cons.length ? `<div class="reason-block bad"><h5>Where it works against you</h5>${list(scored.cons)}</div>` : ""}
-        </div>`
-        : "";
-
-    return `
-      <article class="method" id="method-${esc(method.id)}" data-stage="${esc(method.stage)}" data-security="${esc(method.security)}">
-        <header class="method-head">
-          <div class="method-title">
-            <p class="method-stage">${esc(stage ? stage.name : "")}</p>
-            <h3>${esc(method.name)}</h3>
-            <p class="tagline">${esc(method.tagline)}</p>
-          </div>
-          ${fit}
-        </header>
-        <p class="security security-${esc(method.security)}">
-          <strong>${esc(security.label)}.</strong> ${esc(security.blurb)}
-        </p>
-        ${reasons}
-        <div class="ratings">${Object.keys(RATING_LABELS).map((key) => ratingBar(key, method.ratings[key])).join("")}</div>
-        <details class="method-detail"${opts.open ? " open" : ""}>
-          <summary>How to do it, and what it costs you</summary>
-          <div class="detail-body">
-            <div class="two-col">
-              <div>
-                <h4>What it stops</h4>
-                ${list(method.protects)}
-              </div>
-              <div>
-                <h4>What it does not stop</h4>
-                ${list(method.failsAgainst)}
-              </div>
-            </div>
-            <h4>You will need</h4>
-            ${list(method.materials, "materials")}
-            <h4>Doing it</h4>
-            <ol class="steps">${method.steps.encode.map((step) => `<li>${esc(step)}</li>`).join("")}</ol>
-            <h4>Reading it back</h4>
-            <ol class="steps">${method.steps.decode.map((step) => `<li>${esc(step)}</li>`).join("")}</ol>
-            <div class="worked-example">
-              <h4>${esc(method.example.title)}</h4>
-              <pre>${esc(method.example.lines.join("\n"))}</pre>
-            </div>
-            <h4>Where people go wrong</h4>
-            ${list(method.pitfalls, "pitfalls")}
-            ${
-              printable
-                ? `<p class="detail-link"><a href="#printables" data-printable="${esc(printable.id)}">Print the ${esc(printable.name.toLowerCase())} for this method</a></p>`
-                : ""
-            }
-            ${
-              pairs.length
-                ? `<p class="detail-link">Pairs well with: ${pairs
-                    .map((item) => `<a href="#method-${esc(item.id)}">${esc(item.name)}</a>`)
-                    .join(", ")}</p>`
-                : ""
-            }
-          </div>
-        </details>
-      </article>`;
-  }
-
-  /* ---------------------------------------------------------------- results */
-
-  function renderResults(result) {
-    const section = $("#results");
-    const warnings = $("#warnings");
-    const plan = $("#plan");
-
-    warnings.innerHTML = result.warnings.length
-      ? `<div class="warnings"><h3>Read these first</h3>${result.warnings.map((text) => `<p>${esc(text)}</p>`).join("")}</div>`
+    const genHtml = gen
+      ? `
+        <section class="gen">
+          <p class="kicker">First, make it</p>
+          <div class="hit-head"><h3>${esc(gen.method.name)}</h3>${badge(gen.method)}</div>
+          <p class="recipe">${esc(gen.recipe)}</p>
+          <p class="bits"><strong>About ${gen.bits} bits</strong>, ${esc(grade(gen.bits))}.</p>
+          ${gen.caveat ? `<p class="caveat">${esc(gen.caveat)}</p>` : ""}
+          ${howTo(gen.method)}
+        </section>`
       : "";
 
-    plan.innerHTML = result.plan
-      .map((item) => {
-        if (item.note) {
-          return `
-            <li class="plan-step skipped">
-              <div class="plan-stage"><span class="stage-name">${esc(item.stage.name)}</span><span class="stage-verb">${esc(item.stage.verb)}</span></div>
-              <div class="plan-body"><p class="plan-note">${esc(item.note)}</p></div>
-            </li>`;
-        }
-        const runners = item.runnersUp.length
-          ? `<p class="runners">Also worth a look: ${item.runnersUp
-              .map((entry) => `<a href="#method-${esc(entry.method.id)}">${esc(entry.method.name)}</a> (${entry.score})`)
-              .join(", ")}</p>`
-          : "";
-        return `
-          <li class="plan-step">
-            <div class="plan-stage"><span class="stage-name">${esc(item.stage.name)}</span><span class="stage-verb">${esc(item.stage.verb)}</span></div>
-            <div class="plan-body">
-              <p class="stage-blurb">${esc(item.stage.blurb)}</p>
-              ${methodCard(item.entry.method, item.entry, { open: true })}
-              ${runners}
-            </div>
-          </li>`;
-      })
+    const hitsHtml = hits
+      .map(
+        (entry, index) => `
+        <article class="hit">
+          <div class="rank" aria-hidden="true">${index + 1}</div>
+          <div class="hit-main">
+            <div class="hit-head"><h3>${esc(entry.method.name)}</h3>${badge(entry.method)}</div>
+            <p class="why">${esc(entry.pros[0] || entry.cons[0] || "")}</p>
+            ${howTo(entry.method)}
+          </div>
+        </article>`,
+      )
       .join("");
 
-    if (result.avoid.length) {
-      plan.insertAdjacentHTML(
-        "beforeend",
-        `<li class="plan-step avoid">
-          <div class="plan-stage"><span class="stage-name">Avoid</span><span class="stage-verb">Not for you</span></div>
-          <div class="plan-body">
-            <p class="stage-blurb">These scored badly against your answers. They are not bad methods in general - they are wrong for this job.</p>
-            ${list(result.avoid.map((entry) => `${entry.method.name} - ${entry.cons[0] || "poor fit for your answers"}`))}
-          </div>
-        </li>`,
-      );
+    $("#result-body").innerHTML = `
+      <div class="result-head">
+        <p class="kicker">${gen ? "Then, hide it" : "Hide it"}</p>
+        <button type="button" class="button" id="print-result">Print</button>
+      </div>
+      ${genHtml}
+      <div class="hits" data-count="${hits.length}">${hitsHtml}</div>
+      ${notes.length ? `<div class="notes">${notes.map((note) => `<p>${esc(note)}</p>`).join("")}</div>` : ""}
+      <p class="legend">
+        <span class="badge badge-proven">Proven</span> unbreakable when the rules are followed ·
+        <span class="badge badge-strong">Strong</span> needs a memorised rule or a second building ·
+        <span class="badge badge-obfuscation">Obfuscation</span> stops a person, not an expert ·
+        60 bits is plenty for an account, 80 or more for a master password
+      </p>`;
+  }
+
+  function update() {
+    const choices = collect();
+    let total = 0;
+    let answered = 0;
+    for (const row of ROWS) {
+      const active = rowIsActive(row, choices);
+      const wrapper = document.querySelector(`.row[data-row="${row.id}"]`);
+      if (wrapper) wrapper.hidden = !active;
+      if (!active) continue;
+      total += 1;
+      if (choices[row.id]) answered += 1;
     }
-
-    section.hidden = false;
-    section.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  /* -------------------------------------------------------------- catalogue */
-
-  function renderCatalogue() {
-    const stageFilter = $("#filter-stage").value;
-    const securityFilter = $("#filter-security").value;
-    const sort = $("#sort-order").value;
-
-    const scoreById = {};
-    if (lastResult) for (const entry of lastResult.ranked) scoreById[entry.method.id] = entry;
-
-    const securityOrder = ["proven", "strong", "obfuscation", "operational"];
-    const stageOrder = window.STAGES.map((stage) => stage.id);
-
-    let methods = window.METHODS.slice();
-    if (stageFilter !== "all") methods = methods.filter((method) => method.stage === stageFilter);
-    if (securityFilter !== "all") methods = methods.filter((method) => method.security === securityFilter);
-
-    methods.sort((a, b) => {
-      if (sort === "fit" && lastResult) {
-        return (scoreById[b.id]?.score ?? 0) - (scoreById[a.id]?.score ?? 0) || a.name.localeCompare(b.name);
-      }
-      if (sort === "security") {
-        return securityOrder.indexOf(a.security) - securityOrder.indexOf(b.security) || a.name.localeCompare(b.name);
-      }
-      return stageOrder.indexOf(a.stage) - stageOrder.indexOf(b.stage) || a.name.localeCompare(b.name);
-    });
-
-    $("#method-list").innerHTML = methods.length
-      ? methods.map((method) => methodCard(method, scoreById[method.id])).join("")
-      : '<p class="empty">Nothing matches that combination. Widen the filters.</p>';
-  }
-
-  function populateFilters() {
-    const stageSelect = $("#filter-stage");
-    for (const stage of window.STAGES) {
-      const option = document.createElement("option");
-      option.value = stage.id;
-      option.textContent = `${stage.name} - ${stage.verb.toLowerCase()}`;
-      stageSelect.append(option);
+    if (answered < total) {
+      renderPlaceholder(answered, total);
+      return;
     }
-    const securitySelect = $("#filter-security");
-    for (const [key, value] of Object.entries(window.SECURITY_CLASSES)) {
-      const option = document.createElement("option");
-      option.value = key;
-      option.textContent = value.label;
-      securitySelect.append(option);
-    }
+    renderResult(choices);
   }
 
-  /* -------------------------------------------------------------- printables */
-
-  function renderPrintablePicker() {
-    const picker = $(".printable-picker");
-    picker.innerHTML = window.PRINTABLES.map(
-      (sheet) => `
-        <button type="button" class="chip" data-sheet="${esc(sheet.id)}" aria-pressed="false">
-          <span class="chip-name">${esc(sheet.name)}</span>
-          <span class="chip-blurb">${esc(sheet.blurb)}</span>
-        </button>`,
-    ).join("");
-  }
-
-  function showPrintable(id) {
-    const sheet = window.PRINTABLES.find((item) => item.id === id);
-    if (!sheet) return;
-
-    for (const button of document.querySelectorAll(".printable-picker .chip")) {
-      button.setAttribute("aria-pressed", String(button.dataset.sheet === id));
-    }
-
-    $("#printable-output").innerHTML = `
-      <div class="sheet" id="sheet-${esc(sheet.id)}">
-        <div class="sheet-head no-print">
-          <h3>${esc(sheet.name)}</h3>
-          <button type="button" class="button" data-print-sheet>Print this sheet</button>
-        </div>
-        <h3 class="print-only">${esc(sheet.name)}</h3>
-        <p class="sheet-blurb">${esc(sheet.blurb)}</p>
-        ${sheet.render()}
-      </div>`;
-  }
-
-  /* ------------------------------------------------------------------ print */
+  /* ----------------------------------------------------------------- print */
 
   function printWith(mode) {
     document.body.dataset.print = mode;
     const clear = () => {
       delete document.body.dataset.print;
+      $("#print-sheet").hidden = true;
       window.removeEventListener("afterprint", clear);
     };
     window.addEventListener("afterprint", clear);
     window.print();
   }
 
-  /* ------------------------------------------------------------------- boot */
+  function printSheet(id) {
+    const sheet = window.PRINTABLES.find((item) => item.id === id);
+    if (!sheet) return;
+    const holder = $("#print-sheet");
+    holder.innerHTML = `<h2>${esc(sheet.name)}</h2><p class="sheet-blurb">${esc(sheet.blurb)}</p>${sheet.render()}`;
+    holder.hidden = false;
+    printWith("sheet");
+  }
+
+  /* ------------------------------------------------------------------ boot */
 
   function renderBuildStamp() {
     const info = window.BUILD_INFO || {};
     const date = info.buildDate ? new Date(info.buildDate) : null;
-    const stamp = date
-      ? `${date.toISOString().slice(0, 10)} at ${date.toISOString().slice(11, 16)} UTC`
-      : "unknown";
-    $("#build-stamp").textContent = `Build ${info.buildNumber ?? "?"} - ${stamp} - ${info.commit ?? "unknown"}`;
+    const stamp = date ? date.toISOString().slice(0, 10) : "unknown";
+    $("#build-stamp").textContent = `Build ${info.buildNumber ?? "?"} · ${stamp} · ${info.commit ?? "unknown"}`;
   }
 
   function wireEvents() {
-    $("#question-form").addEventListener("submit", (event) => {
-      event.preventDefault();
-      const collected = collectAnswers();
-      const missing = missingQuestions(collected);
-      const note = $("#form-note");
-
-      if (missing.length) {
-        note.textContent = `Still to answer: ${missing.map((question) => question.prompt).join(" ")}`;
-        note.classList.add("error");
-        const first = document.querySelector(`fieldset[data-question="${missing[0].id}"] input`);
-        if (first) first.focus();
-        return;
-      }
-
-      note.textContent = "";
-      note.classList.remove("error");
-      answers = collected;
-      lastResult = window.recommend(answers);
-      renderResults(lastResult);
-      $("#sort-order").value = "fit";
-      renderCatalogue();
-    });
-
-    $("#reset-button").addEventListener("click", () => {
-      $("#question-form").reset();
-      answers = {};
-      lastResult = null;
-      $("#results").hidden = true;
-      $("#form-note").textContent = "";
-      $("#sort-order").value = "stage";
-      renderCatalogue();
-      $("#advisor").scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    $("#print-plan").addEventListener("click", () => printWith("plan"));
-
-    for (const select of ["#filter-stage", "#filter-security", "#sort-order"]) {
-      $(select).addEventListener("change", renderCatalogue);
-    }
-
+    $("#choices-form").addEventListener("change", update);
     document.addEventListener("click", (event) => {
-      const chip = event.target.closest(".printable-picker .chip");
-      if (chip) {
-        showPrintable(chip.dataset.sheet);
+      const sheetButton = event.target.closest("[data-sheet]");
+      if (sheetButton) {
+        printSheet(sheetButton.dataset.sheet);
         return;
       }
-      if (event.target.closest("[data-print-sheet]")) {
-        printWith("sheet");
-        return;
-      }
-      const link = event.target.closest("a[data-printable]");
-      if (link) {
-        showPrintable(link.dataset.printable);
-      }
+      if (event.target.closest("#print-result")) printWith("result");
     });
   }
 
@@ -390,11 +386,8 @@
     });
   }
 
-  renderQuestions();
-  populateFilters();
-  renderCatalogue();
-  renderPrintablePicker();
-  showPrintable(window.PRINTABLES[0].id);
+  renderChoices();
+  update();
   renderBuildStamp();
   wireEvents();
   registerServiceWorker();

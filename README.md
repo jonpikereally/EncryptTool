@@ -3,10 +3,17 @@
 An advisor for protecting important passwords **offline** - on paper, with dice and a pen,
 using methods that never touch a computer.
 
-You answer eight questions about what you are protecting, who might find it, how often you
-need it back and what you have to hand. It returns a ranked five-stage plan - generate,
-encode, split, store, verify - drawn from a catalogue of 23 methods, each labelled with
-what it actually defeats, plus printable worksheets to work from.
+One screen, six choices: where the randomness comes from, how many methods to show, how
+complex the encryption should be, how long the password is and which characters it uses,
+who might find it, and whether a second sheet can live in another building. The result
+appears as soon as all six are answered and updates live: a generate step sized to the
+password you asked for (how many dice rolls or cards, and roughly how many bits that is),
+then the ranked encode and split methods, each labelled with what it actually defeats,
+with the steps and the printable worksheets one click away.
+
+The catalogue of 23 methods and the scoring engine underneath are unchanged from the
+original eight-question advisor; the page maps the six choices onto that vocabulary in
+`public/app.js`.
 
 ## The one rule this site follows
 
@@ -39,10 +46,10 @@ and useful goal. They are never presented as unbreakable.
 
 ```
 public/            flat static site, served by the ASSETS binding
-  index.html       the whole app - one page
+  index.html       the whole app - one screen, choices left, result right
   styles.css       one stylesheet, no external fonts
   methods.js       the method catalogue (content lives here)
-  recommend.js     the questions and the scoring
+  recommend.js     the scoring (and the original question list it was written for)
   printables.js    the printable worksheets
   app.js           UI wiring
   sw.js            offline cache
