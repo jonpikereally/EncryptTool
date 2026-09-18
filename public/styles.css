@@ -506,37 +506,207 @@ body.has-dialog { overflow: hidden; }
 
 /* ----------------------------------------------------------------- print */
 
+/* Screen-side: the print-only pieces stay out of the way until printing. */
+.print-only { display: none; }
+.hit-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-top: 0.1rem; }
+.hit-foot .howto { min-width: 0; }
+.print-one { font-size: 0.82rem; white-space: nowrap; flex: none; }
+
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
 @media print {
+  /*
+   * The printed sheet is a working document for a table with a pen on it, not
+   * a copy of the screen. Colour goes, argument goes, the key material and the
+   * steps get bigger, and nothing a reader needs is allowed to break across a
+   * page.
+   */
   :root {
     --bg: #fff;
     --bg-raised: #fff;
     --bg-sunken: #fff;
     --text: #000;
-    --text-dim: #333;
-    --text-faint: #555;
-    --line: #999;
-    --line-soft: #ccc;
+    --text-dim: #1a1a1a;
+    --text-faint: #444;
+    --line: #888;
+    --line-soft: #bbb;
     --accent: #000;
+    --accent-ink: #fff;
+    --good: #000;
+    --bad: #000;
+    --warn: #000;
     --proven: #000;
     --strong: #000;
     --obfuscation: #000;
     --operational: #000;
   }
-  body { font-size: 11pt; background: #fff; color: #000; height: auto; overflow: visible; display: block; }
+
+  body {
+    font-size: 10.5pt;
+    line-height: 1.4;
+    background: #fff;
+    color: #000;
+    height: auto;
+    overflow: visible;
+    display: block;
+  }
   .screen { display: block; }
-  .choices, .result { overflow: visible; border: 0; padding: 0; }
-  .skip-link, .bar, .button, .link-button, .onboarding, .notes, .legend { display: none !important; }
-  .masked .pw-value { filter: none; }
-  .howto, .fold { display: block; }
+  .choices, .result { overflow: visible; border: 0; padding: 0; background: #fff; }
+  .print-only { display: block; }
+
+  /*
+   * Ctrl+P is a first-class way to print, so the sane default applies with no
+   * data-print attribute at all: the chooser and the chrome go, the results
+   * stay. The Print buttons only narrow it further.
+   */
+  .choices,
+  #print-sheet,
+  .skip-link,
+  .bar,
+  .button,
+  .link-button,
+  .hit-foot > .print-one,
+  .onboarding,
+  .placeholder,
+  .result-top,
+  .tagline,
+  .why,
+  .two-col,
+  .sheets,
+  .runners,
+  .rank { display: none !important; }
+
+  /* Header block, repeated identity for a sheet that outlives the browser. */
+  .print-head { border-bottom: 1.5pt solid #000; padding-bottom: 4pt; margin-bottom: 10pt; }
+  .print-head-row { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+  .print-brand { font-weight: 700; font-size: 13pt; letter-spacing: -0.01em; margin: 0; }
+  .print-meta { font-family: var(--mono); font-size: 8pt; color: #333; margin: 0; }
+  .print-warn { font-size: 8.5pt; margin: 4pt 0 0; font-style: italic; }
+
+  .kicker { font-size: 9pt; letter-spacing: 0.1em; margin: 0 0 4pt; }
+  .result-group { margin-bottom: 10pt; break-inside: auto; }
+  .result-head { margin-bottom: 4pt; }
+
+  /* One result per block, never split down the middle. */
+  .hits { display: block; }
+  .hit {
+    display: block;
+    break-inside: avoid;
+    border: 0.75pt solid #999;
+    border-radius: 3pt;
+    padding: 7pt 9pt;
+    margin: 0 0 8pt;
+    background: #fff;
+  }
+  .hit-head { display: block; margin-bottom: 4pt; }
+  .hit-head h3 { display: inline; font-size: 12pt; }
+  .badge {
+    font-size: 7pt;
+    border: 0.5pt solid #000;
+    padding: 0.5pt 3pt;
+    margin-left: 5pt;
+    vertical-align: 1pt;
+  }
+
+  /* The key material is the reason the sheet exists. */
+  .material {
+    break-inside: avoid;
+    border: 0.75pt solid #000;
+    border-left-width: 2.5pt;
+    border-radius: 2pt;
+    padding: 6pt 8pt;
+    margin: 5pt 0 6pt;
+    background: #fff;
+  }
+  .material h4 { font-size: 8.5pt; margin: 0 0 4pt; color: #000; }
+  .digits {
+    font-size: 12.5pt;
+    line-height: 1.85;
+    letter-spacing: 0.14em;
+    border: 0;
+    background: #fff;
+    padding: 2pt 0;
+    margin: 0 0 4pt;
+  }
+  .keyword { font-size: 15pt; margin-bottom: 3pt; }
+  .material-note, .caveat { font-size: 9pt; color: #000; }
+  .caveat { font-weight: 600; }
+
+  /* Instructions: what you actually follow at the table. */
+  h4 { font-size: 8.5pt; margin: 7pt 0 2pt; color: #000; }
+  .hit-foot { display: block; }
+  .howto, .fold { display: block; break-inside: auto; }
   .howto > summary, .fold > summary { display: none; }
-  .hit { break-inside: avoid; }
-  .sheet-table { font-size: 8pt; }
+  .howto-body { padding: 0; font-size: 9.5pt; }
+  ol.steps, .detail-body ul, .howto-body ul { padding-left: 13pt; margin: 0 0 4pt; }
+  .howto-body li { margin-bottom: 2pt; break-inside: avoid; }
+  .howto-body pre {
+    font-size: 8.5pt;
+    line-height: 1.55;
+    border: 0.5pt solid #bbb;
+    background: #fff;
+    padding: 5pt 6pt;
+    break-inside: avoid;
+  }
+
+  /* Handling rules belong on the paper, not only on the screen. */
+  .notes {
+    display: block !important;
+    break-inside: avoid;
+    border: 0.75pt solid #000;
+    border-radius: 2pt;
+    padding: 5pt 7pt;
+    margin-top: 6pt;
+    font-size: 9pt;
+    color: #000;
+  }
+  .legend { display: block; font-size: 8pt; color: #000; margin-top: 6pt; }
+
+  /* Passwords: big enough to transcribe without squinting, with a cut guide. */
+  .pws { display: block; }
+  .pw {
+    display: block;
+    break-inside: avoid;
+    border: 0;
+    border-bottom: 0.5pt dashed #999;
+    border-radius: 0;
+    padding: 4pt 0;
+    margin: 0;
+    background: #fff;
+  }
+  .pw-value {
+    font-size: 14pt;
+    letter-spacing: 0.08em;
+    line-height: 1.5;
+    margin-bottom: 1pt;
+  }
+  .masked .pw-value { filter: none; }
+  .pw .bits { font-size: 8.5pt; color: #333; margin: 0; }
+  .charmap { font-size: 8.5pt; margin-top: 5pt; }
+
+  /* Worksheets and generated grids must never be cut in half. */
+  .sheet-table { font-size: 8pt; break-inside: avoid; page-break-inside: avoid; }
   .sheet-table.tiny { font-size: 6pt; }
+  .sheet-table.card { font-size: 6.5pt; }
+  /* The 95-row character code table has to land on one sheet. */
+  .sheet-table.compact { font-size: 7pt; }
+  .sheet-table.compact th, .sheet-table.compact td { padding: 0.4pt 2pt; line-height: 1.25; }
+  .code-columns { gap: 0.4rem; }
+  .sheet-table th, .sheet-table td { border-color: #999; }
+  .print-sheet h2 { font-size: 13pt; margin-bottom: 3pt; }
+  .sheet-blurb { font-size: 9pt; }
+  .sheet-note { font-size: 8.5pt; }
+
   a { color: #000; text-decoration: none; }
 
-  body[data-print="result"] > *:not(main),
-  body[data-print="result"] main > *:not(#result) { display: none !important; }
+  /* "Print this one": narrow the same sheet to a single result card. */
+  body[data-print="one"] .result-group:not(.has-target) { display: none !important; }
+  body[data-print="one"] .hit:not(.print-target) { display: none !important; }
 
+  /* Print one blank worksheet on its own, instead of the results. */
   body[data-print="sheet"] > *:not(#print-sheet) { display: none !important; }
   body[data-print="sheet"] #print-sheet { display: block !important; }
 }
