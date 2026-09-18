@@ -364,13 +364,13 @@
         if (dice) {
           return {
             title: label,
-            html: `<p>Roll <strong>${count} digits</strong> with two dice and the digit table, and write them on the pad worksheet. That covers a password of up to ${n} characters.</p><p>${sheet("dice-digits")} · ${sheet("pad-sheet")} · ${sheet("code-table")}</p>`,
+            html: `<p>Roll <strong>${count} digits</strong> with two dice and the digit table, and write them on the pad worksheet. That covers a password of up to ${n} characters.</p><p class="sheets">${sheet("dice-digits")} · ${sheet("pad-sheet")} · ${sheet("code-table")}</p>`,
           };
         }
         const digits = randomDigits(count);
         return {
           title: `${label} - ${count} digits, covers up to ${n} characters`,
-          html: `<pre class="digits">${digitsBlock(digits)}</pre><p class="material-note">Check digit ${checkDigit(digits)}. Write it after a slash so you can spot a copying slip later.</p><p>${sheet("code-table")} · ${sheet("pad-sheet")}</p>`,
+          html: `<pre class="digits">${digitsBlock(digits)}</pre><p class="material-note">Check digit ${checkDigit(digits)}. Write it after a slash so you can spot a copying slip later.</p><p class="sheets">${sheet("code-table")} · ${sheet("pad-sheet")}</p>`,
           note: "Use each pad exactly once. Keep it in a different building from the ciphertext.",
         };
       }
@@ -378,20 +378,20 @@
         if (dice) {
           return {
             title: "Your random k values",
-            html: `<p>Roll <strong>${n} numbers from 00 to 96</strong> - two digits each, roll again on 97 to 99 - one per character, and write them in the k column of the worksheet.</p><p>${sheet("dice-digits")} · ${sheet("shamir-sheet")} · ${sheet("code-table")}</p>`,
+            html: `<p>Roll <strong>${n} numbers from 00 to 96</strong> - two digits each, roll again on 97 to 99 - one per character, and write them in the k column of the worksheet.</p><p class="sheets">${sheet("dice-digits")} · ${sheet("shamir-sheet")} · ${sheet("code-table")}</p>`,
           };
         }
         const ks = Array.from({ length: n }, () => String(randomInt(97)).padStart(2, "0"));
         return {
           title: `Your random k values - one per character, ${n} of them`,
-          html: `<pre class="digits">${digitsBlock(ks.join(""))}</pre><p class="material-note">Read them in pairs, left to right. A fresh k for every character is what makes the split hold.</p><p>${sheet("shamir-sheet")} · ${sheet("code-table")}</p>`,
+          html: `<pre class="digits">${digitsBlock(ks.join(""))}</pre><p class="material-note">Read them in pairs, left to right. A fresh k for every character is what makes the split hold.</p><p class="sheets">${sheet("shamir-sheet")} · ${sheet("code-table")}</p>`,
         };
       }
       case "grid-lookup": {
         if (dice) {
           return {
             title: "Your card",
-            html: `<p>Fill every cell of the blank card with dice and the character grid - about twenty minutes, once.</p><p>${sheet("blank-grid")} · ${sheet("dice-grid")}</p>`,
+            html: `<p>Fill every cell of the blank card with dice and the character grid - about twenty minutes, once.</p><p class="sheets">${sheet("blank-grid")} · ${sheet("dice-grid")}</p>`,
           };
         }
         const set = gridCharset(o);
@@ -408,7 +408,7 @@
         const keyword = lettersOf(ws.join(""));
         return {
           title: "Your keyword - memorise it, never write it",
-          html: `<p class="keyword">${esc(ws.join(" "))}</p><p class="material-note">Used as <span class="mono">${esc(keyword)}</span>, ${keyword.length} letters, about ${keyBits(keyword, 3)} bits. Three real words are far easier to keep in your head than random letters, and just as good here.</p><p>${sheet("tabula-recta")}</p>`,
+          html: `<p class="keyword">${esc(ws.join(" "))}</p><p class="material-note">Used as <span class="mono">${esc(keyword)}</span>, ${keyword.length} letters, about ${keyBits(keyword, 3)} bits. Three real words are far easier to keep in your head than random letters, and just as good here.</p><p class="sheets">${sheet("tabula-recta")}</p>`,
           note: o.scope === "many" ? "One keyword over many passwords is the classic way this cipher gets broken. Fine for the accounts that do not matter; not for the ones that do." : "",
         };
       }
@@ -447,7 +447,7 @@
         if (dice) {
           return {
             title: "Your keyed deck",
-            html: `<p>Riffle shuffle at least seven times, then write the deck's order down, top to bottom, on a sheet you keep with the ciphertext's twin - that order is the key.</p><p>${sheet("card-table")}</p>`,
+            html: `<p>Riffle shuffle at least seven times, then write the deck's order down, top to bottom, on a sheet you keep with the ciphertext's twin - that order is the key.</p><p class="sheets">${sheet("card-table")}</p>`,
           };
         }
         const rows = [];
@@ -515,7 +515,10 @@
                   ? `<div class="material"><h4>${esc(m.title)}</h4>${m.html}${m.note ? `<p class="caveat">${esc(m.note)}</p>` : ""}</div>`
                   : `<p class="material-none">Nothing to generate - this one works with something you already own or already know.</p>`
               }
-              ${howTo(entry.method)}
+              <div class="hit-foot">
+                ${howTo(entry.method)}
+                <button type="button" class="link-button print-one" data-print-one>Print this one</button>
+              </div>
             </div>
           </article>`;
       })
@@ -556,6 +559,7 @@
           <button type="button" class="button" id="mask-toggle" aria-pressed="false">Hide</button>
         </div>
         <div class="pws">${cards}</div>
+        <p class="print-only charmap">Reading these back: <strong>0</strong> zero, <strong>O</strong> letter O, <strong>1</strong> one, <strong>l</strong> lower-case L, <strong>I</strong> upper-case i.</p>
         <div class="notes">
           <p>Pick one and write it down by hand. Do not copy it into a notes app, a message or the clipboard - that is the exact leak this page exists to avoid. 60 bits is plenty for an account; 80 or more for a master password or a seed.</p>
         </div>
@@ -581,7 +585,18 @@
       parts.push(renderTools(o));
     }
     if (make !== "tool") parts.push(renderPasswords(collect(PASSWORD_ROWS)));
+    const now = new Date();
+    const stamped = `${now.toISOString().slice(0, 10)} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const info = window.BUILD_INFO || {};
+
     $("#result-body").innerHTML = `
+      <header class="print-head print-only">
+        <div class="print-head-row">
+          <p class="print-brand">EncryptYourLife</p>
+          <p class="print-meta">${esc(stamped)} · build ${esc(String(info.buildNumber ?? "?"))} · ${esc(location.host)}</p>
+        </div>
+        <p class="print-warn">This sheet may carry key material. Store it as each method says, keep it away from what it protects, and never photograph it or type it into a computer.</p>
+      </header>
       <div class="result-top">
         <p class="legend">
           <span class="badge badge-proven">Proven</span> unbreakable when the rules are followed ·
@@ -606,10 +621,19 @@
       delete document.body.dataset.print;
       $("#print-sheet").hidden = true;
       for (const item of closed) item.open = false;
+      for (const el of document.querySelectorAll(".print-target, .has-target")) el.classList.remove("print-target", "has-target");
       window.removeEventListener("afterprint", clear);
     };
     window.addEventListener("afterprint", clear);
     window.print();
+  }
+
+  /** Print one result card on its own, rather than the whole page of five. */
+  function printOne(card) {
+    card.classList.add("print-target");
+    const group = card.closest(".result-group");
+    if (group) group.classList.add("has-target");
+    printWith("one");
   }
 
   function printSheet(id) {
@@ -666,6 +690,11 @@
       }
       if (event.target.closest("#print-result")) {
         printWith("result");
+        return;
+      }
+      const one = event.target.closest("[data-print-one]");
+      if (one) {
+        printOne(one.closest(".hit"));
         return;
       }
       const mask = event.target.closest("#mask-toggle");
